@@ -557,9 +557,10 @@
 
   /* ── MODAL IMPORTAR DESDE EXCEL ──────────────────────────────────────────── */
   .import-overlay {
+    display: none;
     position: fixed; inset: 0; z-index: 9000;
     background: rgba(40,20,60,0.55); backdrop-filter: blur(2px);
-    display: flex; align-items: center; justify-content: center; padding: 20px;
+    align-items: center; justify-content: center; padding: 20px;
   }
   .import-overlay.open { display: flex; }
   .import-modal {
