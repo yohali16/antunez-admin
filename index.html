@@ -548,6 +548,86 @@
   }
   .logout-btn:hover { background: rgba(255,255,255,0.15); }
 
+  /* ── BOTÓN PEGAR PRODUCTOS ───────────────────────────────────────────────── */
+  .add-row-btns-wrap { display: flex; gap: 10px; flex-wrap: wrap; }
+  .add-row-btn.pegar {
+    background: #eef6ff; border-color: #aed4f5; color: #1c6dbf;
+  }
+  .add-row-btn.pegar:hover { background: #dceeff; }
+
+  /* ── MODAL IMPORTAR DESDE EXCEL ──────────────────────────────────────────── */
+  .import-overlay {
+    position: fixed; inset: 0; z-index: 9000;
+    background: rgba(40,20,60,0.55); backdrop-filter: blur(2px);
+    display: flex; align-items: center; justify-content: center; padding: 20px;
+  }
+  .import-overlay.open { display: flex; }
+  .import-modal {
+    background: #fff; border-radius: 20px; padding: 28px 30px;
+    width: 100%; max-width: 900px; max-height: 88vh; overflow-y: auto;
+    box-shadow: 0 24px 70px rgba(40,10,70,0.35);
+  }
+  .import-modal h2 { font-family: 'Playfair Display', serif; font-size: 20px; color: var(--text); margin: 0 0 6px; }
+  .import-modal .import-sub { font-size: 12.5px; color: var(--text3); margin-bottom: 18px; line-height: 1.5; }
+  .import-textarea {
+    width: 100%; min-height: 110px; border-radius: 12px; border: 1.5px solid var(--border);
+    padding: 12px 14px; font-family: 'DM Sans', monospace; font-size: 13px;
+    resize: vertical; outline: none; box-sizing: border-box; transition: border-color 0.15s;
+  }
+  .import-textarea:focus { border-color: var(--accent); }
+  .import-btn-row { display: flex; justify-content: flex-end; gap: 10px; margin-top: 12px; margin-bottom: 18px; }
+  .import-preview-wrap { display: none; }
+  .import-preview-wrap.show { display: block; }
+  .import-preview-toolbar {
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    margin-bottom: 12px; padding: 12px 14px; background: var(--surface2);
+    border-radius: 12px; border: 1.5px solid var(--border);
+  }
+  .import-preview-toolbar .ipt-label { font-size: 12px; font-weight: 700; color: var(--text3); }
+  .import-preview-toolbar select, .import-preview-toolbar input[type="number"] {
+    border: 1.5px solid var(--border); border-radius: 7px; padding: 5px 8px; font-size: 12.5px;
+    font-family: 'DM Sans', sans-serif; outline: none;
+  }
+  .import-mark-btn {
+    background: #fff7e6; border: 1.5px solid #f0c674; color: #93660b;
+    border-radius: 7px; padding: 6px 12px; font-size: 12px; font-weight: 600; cursor: pointer;
+  }
+  .import-mark-btn:hover { background: #fcecc4; }
+  .import-table-wrap { border: 1.5px solid var(--border); border-radius: 12px; overflow: hidden; margin-bottom: 18px; }
+  .import-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .import-table thead { background: var(--surface2); }
+  .import-table th { padding: 9px 10px; text-align: left; font-size: 10.5px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; color: var(--text3); }
+  .import-table th.center, .import-table td.center { text-align: center; }
+  .import-table tbody tr { border-top: 1px solid var(--border); }
+  .import-table tbody tr.row-paleta { background: #fff8ec; }
+  .import-table td { padding: 6px 8px; vertical-align: middle; }
+  .import-table input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; }
+  .import-table input.ic-text, .import-table input.ic-num {
+    width: 100%; border: 1.5px solid transparent; border-radius: 6px; padding: 5px 7px;
+    font-family: 'DM Sans', sans-serif; font-size: 12.5px; outline: none; box-sizing: border-box;
+    transition: border-color 0.15s, background 0.15s;
+  }
+  .import-table input.ic-num { text-align: right; }
+  .import-table input.ic-text:focus, .import-table input.ic-num:focus { border-color: var(--accent); background: var(--surface2); }
+  .import-tipo-select {
+    border: 1.5px solid var(--border); border-radius: 6px; padding: 4px 6px;
+    font-size: 11.5px; font-weight: 600; outline: none; cursor: pointer;
+  }
+  .import-tipo-select.tipo-producto { color: var(--accent); }
+  .import-tipo-select.tipo-paleta   { color: #b5790b; }
+  .import-row-del {
+    background: none; border: none; cursor: pointer; color: #c0392b; font-size: 14px;
+    padding: 4px 6px; border-radius: 6px; transition: background 0.15s;
+  }
+  .import-row-del:hover { background: #fdecea; }
+  .import-summary { display: flex; gap: 18px; font-size: 12.5px; color: var(--text3); margin-bottom: 16px; flex-wrap: wrap; }
+  .import-summary b { color: var(--text); }
+  .import-error-box {
+    background: #fdecea; color: #c0392b; border-radius: 10px; padding: 11px 14px;
+    font-size: 12.5px; margin-bottom: 14px; display: none;
+  }
+  .import-error-box.show { display: block; }
+
 
 
 </style>
@@ -662,6 +742,58 @@
   </div>
 </div>
 
+<div class="import-overlay" id="importOverlay">
+  <div class="import-modal">
+    <h2>📋 Pegar productos desde Excel</h2>
+    <div class="import-sub">
+      Copia las columnas <b>Cantidad, Producto, Costo</b> desde Excel (o desde la tabla que te dé la IA al leer tu ticket) y pégalas aquí abajo. Después podrás revisar todo, corregir errores y marcar cuáles filas son paletas.
+    </div>
+    <textarea class="import-textarea" id="importTextarea" placeholder="1&#9;SEDAL CREMA PEINAR REST INST&#9;14.50
+2&#9;SEDAL CREMA PEINAR MEGA CRECIMIENTO&#9;22.00
+8&#9;DESODORANTE HOMBRE&#9;25.00"></textarea>
+    <div class="import-btn-row">
+      <button class="btn-secondary" onclick="cerrarImportar()">Cancelar</button>
+      <button class="btn-primary" onclick="procesarPegado()">Analizar texto</button>
+    </div>
+
+    <div class="import-error-box" id="importErrorBox"></div>
+
+    <div class="import-preview-wrap" id="importPreviewWrap">
+      <div class="import-preview-toolbar">
+        <span class="ipt-label">Marcar filas como paleta:</span>
+        <input type="number" id="ipFrom" min="1" placeholder="de #" style="width:70px">
+        <span style="font-size:12px;color:var(--text3)">a</span>
+        <input type="number" id="ipTo" min="1" placeholder="a #" style="width:70px">
+        <button class="import-mark-btn" onclick="marcarRangoComoPaleta()">🍭 Marcar como Paleta</button>
+        <button class="import-mark-btn" onclick="marcarRangoComoProducto()">🛒 Marcar como Producto</button>
+      </div>
+
+      <div class="import-table-wrap">
+        <table class="import-table">
+          <thead>
+            <tr>
+              <th class="center">#</th>
+              <th>Cantidad</th>
+              <th>Producto</th>
+              <th>Costo Unit.</th>
+              <th>Tipo</th>
+              <th class="center">Quitar</th>
+            </tr>
+          </thead>
+          <tbody id="importTbody"></tbody>
+        </table>
+      </div>
+
+      <div class="import-summary" id="importSummary"></div>
+
+      <div class="import-btn-row" style="margin-top:0">
+        <button class="btn-secondary" onclick="cerrarImportar()">Cancelar</button>
+        <button class="btn-primary" onclick="confirmarImportacion()">✅ Agregar a la compra</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
 // ── State ─────────────────────────────────────────────────────────────────────
 let tabs = [];
@@ -749,7 +881,10 @@ function renderPanel(id) {
         <tbody id="vtbody_${id}"></tbody>
       </table>
     </div>
-    <button class="add-row-btn" onclick="addVentaRow('${id}')">+ Agregar producto de venta</button>
+    <div class="add-row-btns-wrap">
+      <button class="add-row-btn" onclick="addVentaRow('${id}')">+ Agregar producto de venta</button>
+      <button class="add-row-btn pegar" onclick="abrirImportar('${id}')">📋 Pegar productos</button>
+    </div>
     <div class="totals-section-label">Resumen de venta</div>
     <div class="totals-wrap" id="vtotals_${id}"></div>
 
@@ -1434,7 +1569,241 @@ function refreshCorte(tabId) {
 // ── CORTE DE VENTAS ───────────────────────────────────────────────────────────
 
 
-const STORAGE_KEY = 'antunez_v1';
+// ── IMPORTAR PRODUCTOS DESDE EXCEL/TEXTO PEGADO ───────────────────────────────
+let importTabId = null;   // a qué compra se va a agregar
+let importRows = [];      // [{cantidad, producto, costo, tipo: 'producto'|'paleta'}]
+
+function abrirImportar(tabId) {
+  importTabId = tabId;
+  importRows = [];
+  document.getElementById('importTextarea').value = '';
+  document.getElementById('importPreviewWrap').classList.remove('show');
+  document.getElementById('importErrorBox').classList.remove('show');
+  document.getElementById('importOverlay').classList.add('open');
+  setTimeout(() => document.getElementById('importTextarea').focus(), 50);
+}
+
+function cerrarImportar() {
+  document.getElementById('importOverlay').classList.remove('open');
+  importTabId = null;
+  importRows = [];
+}
+
+function mostrarErrorImportar(msg) {
+  const box = document.getElementById('importErrorBox');
+  box.textContent = msg;
+  box.classList.add('show');
+}
+
+// Convierte un número con formato "$1,234.50" o "1234,50" a número plano
+function parsearNumero(str) {
+  if (str == null) return '';
+  let s = String(str).trim();
+  if (!s) return '';
+  s = s.replace(/[^0-9.,-]/g, ''); // quitar $ y espacios
+  if (!s) return '';
+  // Si tiene coma y punto, asumimos que el punto es el decimal (formato US: 1,234.50)
+  if (s.includes(',') && s.includes('.')) {
+    s = s.replace(/,/g, '');
+  } else if (s.includes(',') && !s.includes('.')) {
+    // Solo coma: puede ser separador de miles (1,234) o decimal (22,50)
+    const partes = s.split(',');
+    if (partes[partes.length-1].length === 2) {
+      s = s.replace(/,/g, '.'); // probablemente decimal
+    } else {
+      s = s.replace(/,/g, ''); // probablemente miles
+    }
+  }
+  const n = parseFloat(s);
+  return isNaN(n) ? '' : n;
+}
+
+function procesarPegado() {
+  document.getElementById('importErrorBox').classList.remove('show');
+  const texto = document.getElementById('importTextarea').value;
+  if (!texto || !texto.trim()) {
+    mostrarErrorImportar('Pega primero el texto con tus productos (Cantidad, Producto, Costo).');
+    return;
+  }
+
+  const lineas = texto.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
+  if (!lineas.length) {
+    mostrarErrorImportar('No se encontró ningún producto en el texto pegado.');
+    return;
+  }
+
+  const filas = [];
+  const lineasConProblema = [];
+
+  lineas.forEach((linea, idx) => {
+    // Separar por tabulador (Excel), o si no hay tabs, por 2+ espacios, o por coma/punto y coma
+    let partes;
+    if (linea.includes('\t')) {
+      partes = linea.split('\t');
+    } else if (linea.includes(';')) {
+      partes = linea.split(';');
+    } else if (/\s{2,}/.test(linea)) {
+      partes = linea.split(/\s{2,}/);
+    } else if (linea.includes(',')) {
+      partes = linea.split(',');
+    } else {
+      partes = [linea];
+    }
+    partes = partes.map(p => p.trim()).filter(p => p !== '');
+
+    // Saltar línea de encabezado típica (Cantidad, Producto, Costo...)
+    if (idx === 0 && /cantidad/i.test(partes[0]||'') ) return;
+
+    if (partes.length < 3) {
+      lineasConProblema.push(idx+1);
+      return;
+    }
+
+    const cantidad = parsearNumero(partes[0]);
+    const producto = partes[1];
+    const costo    = parsearNumero(partes[2]);
+
+    if (cantidad === '' || !producto || costo === '') {
+      lineasConProblema.push(idx+1);
+      return;
+    }
+
+    filas.push({ cantidad, producto, costo, tipo: 'producto' });
+  });
+
+  if (!filas.length) {
+    mostrarErrorImportar('No se pudo leer ningún producto válido. Revisa que cada línea tenga Cantidad, Producto y Costo separados por tabulador o coma.');
+    return;
+  }
+
+  importRows = filas;
+  renderTablaImportar();
+  document.getElementById('importPreviewWrap').classList.add('show');
+
+  if (lineasConProblema.length) {
+    mostrarErrorImportar(`⚠️ Se omitieron ${lineasConProblema.length} línea(s) que no se pudieron leer bien (línea ${lineasConProblema.join(', ')}). Puedes agregarlas manualmente después.`);
+  }
+}
+
+function renderTablaImportar() {
+  const tbody = document.getElementById('importTbody');
+  tbody.innerHTML = '';
+  importRows.forEach((row, i) => {
+    const tr = document.createElement('tr');
+    tr.className = row.tipo === 'paleta' ? 'row-paleta' : '';
+
+    const tdNum = document.createElement('td');
+    tdNum.className = 'center';
+    tdNum.textContent = (i+1);
+    tr.appendChild(tdNum);
+
+    const tdCant = document.createElement('td');
+    const inpCant = document.createElement('input');
+    inpCant.className = 'ic-num'; inpCant.type = 'number'; inpCant.step = 'any'; inpCant.min = '0';
+    inpCant.value = row.cantidad;
+    inpCant.addEventListener('input', function(){ importRows[i].cantidad = this.value; });
+    tdCant.appendChild(inpCant); tr.appendChild(tdCant);
+
+    const tdProd = document.createElement('td');
+    const inpProd = document.createElement('input');
+    inpProd.className = 'ic-text'; inpProd.type = 'text';
+    inpProd.value = row.producto;
+    inpProd.addEventListener('input', function(){ importRows[i].producto = this.value; });
+    tdProd.appendChild(inpProd); tr.appendChild(tdProd);
+
+    const tdCosto = document.createElement('td');
+    const inpCosto = document.createElement('input');
+    inpCosto.className = 'ic-num'; inpCosto.type = 'number'; inpCosto.step = 'any'; inpCosto.min = '0';
+    inpCosto.value = row.costo;
+    inpCosto.addEventListener('input', function(){ importRows[i].costo = this.value; });
+    tdCosto.appendChild(inpCosto); tr.appendChild(tdCosto);
+
+    const tdTipo = document.createElement('td');
+    const sel = document.createElement('select');
+    sel.className = 'import-tipo-select ' + (row.tipo==='paleta' ? 'tipo-paleta' : 'tipo-producto');
+    sel.innerHTML = `<option value="producto">🛒 Producto</option><option value="paleta">🍭 Paleta</option>`;
+    sel.value = row.tipo;
+    sel.addEventListener('change', function(){
+      importRows[i].tipo = this.value;
+      tr.className = this.value === 'paleta' ? 'row-paleta' : '';
+      sel.className = 'import-tipo-select ' + (this.value==='paleta' ? 'tipo-paleta' : 'tipo-producto');
+      actualizarResumenImportar();
+    });
+    tdTipo.appendChild(sel); tr.appendChild(tdTipo);
+
+    const tdDel = document.createElement('td');
+    tdDel.className = 'center';
+    const btnDel = document.createElement('button');
+    btnDel.className = 'import-row-del'; btnDel.textContent = '🗑';
+    btnDel.addEventListener('click', () => {
+      importRows.splice(i, 1);
+      renderTablaImportar();
+    });
+    tdDel.appendChild(btnDel); tr.appendChild(tdDel);
+
+    tbody.appendChild(tr);
+  });
+  actualizarResumenImportar();
+}
+
+function marcarRangoComoPaleta() { marcarRango('paleta'); }
+function marcarRangoComoProducto() { marcarRango('producto'); }
+
+function marcarRango(tipo) {
+  const from = parseInt(document.getElementById('ipFrom').value);
+  const to   = parseInt(document.getElementById('ipTo').value);
+  if (!from || !to || from < 1 || to < from) {
+    mostrarErrorImportar('Indica un rango válido, por ejemplo de 8 a 12.');
+    return;
+  }
+  for (let i = from-1; i <= to-1 && i < importRows.length; i++) {
+    importRows[i].tipo = tipo;
+  }
+  renderTablaImportar();
+}
+
+function actualizarResumenImportar() {
+  const el = document.getElementById('importSummary');
+  const totalProductos = importRows.filter(r => r.tipo === 'producto').length;
+  const totalPaletas   = importRows.filter(r => r.tipo === 'paleta').length;
+  const costoTotal = importRows.reduce((s,r) => s + (parseFloat(r.cantidad)||0)*(parseFloat(r.costo)||0), 0);
+  el.innerHTML = `
+    <span>🛒 Productos: <b>${totalProductos}</b></span>
+    <span>🍭 Paletas: <b>${totalPaletas}</b></span>
+    <span>💰 Costo total: <b>${fmt(costoTotal)}</b></span>
+  `;
+}
+
+function confirmarImportacion() {
+  if (!importTabId || !importRows.length) {
+    cerrarImportar();
+    return;
+  }
+  const tab = tabs.find(t => t.id === importTabId);
+  if (!tab) { cerrarImportar(); return; }
+
+  importRows.forEach(r => {
+    const nuevaFila = {
+      id: newId(),
+      cantidad: r.cantidad,
+      producto: r.producto,
+      costo: r.costo,
+      precio: '', // el precio de venta lo agrega ella después
+    };
+    if (r.tipo === 'paleta') {
+      tab.paletaRows.push(nuevaFila);
+      renderPaletaRow(importTabId, nuevaFila);
+    } else {
+      tab.ventaRows.push(nuevaFila);
+      renderVentaRow(importTabId, nuevaFila);
+    }
+  });
+
+  refreshTotals(importTabId);
+  cerrarImportar();
+}
+
+
 let saveTimeout = null;
 
 function buildStateObject() {
