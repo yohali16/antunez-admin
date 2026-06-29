@@ -1429,6 +1429,7 @@ function loadFromLocal() {
 
 // Guardado con debounce: no guarda en cada tecla, sino 800ms después de dejar de teclear
 function saveState() {
+  if (firestoreLoading) return; // evitar guardar mientras se está cargando/inicializando
   clearTimeout(saveTimeout);
   showSavingIndicator();
   saveTimeout = setTimeout(() => {
@@ -1578,6 +1579,8 @@ window.addEventListener('beforeunload', () => { clearTimeout(saveTimeout); saveT
 
 // ── Init ───────────────────────────────────────────────────────────────────────
 async function iniciarApp() {
+  firestoreLoading = true; // bloquear guardados automáticos mientras se inicializa
+
   // 1) Mientras esperamos Firebase, mostrar algo de inmediato con lo que haya en localStorage
   const cargoLocal = loadFromLocal();
   if (!cargoLocal) {
@@ -1592,6 +1595,8 @@ async function iniciarApp() {
     setTimeout(() => resolve(false), 5000);
   });
   const fbListo = await esperarFirebase;
+
+  firestoreLoading = false; // ya se puede guardar normalmente
 
   if (fbListo) {
     showSavingIndicator();
