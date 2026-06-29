@@ -1459,12 +1459,15 @@ function showErrorIndicator() {
 // ── Firebase Firestore (almacenamiento en la nube) ────────────────────────────
 let firestoreLoading = false;   // evita guardar mientras estamos cargando datos remotos
 let firestoreReady = false;
+let ultimoTokenEscritura = null; // identifica nuestras propias escrituras para ignorarlas en onSnapshot
 
 async function saveToFirestore() {
   if (!window.__firebaseReady || firestoreLoading) return;
   try {
-    const { db, doc, setDoc, serverTimestamp, DOC_REF } = window.__firebase;
+    const { setDoc, serverTimestamp, DOC_REF } = window.__firebase;
     const data = buildStateObject();
+    ultimoTokenEscritura = 'w_' + Date.now() + '_' + Math.random().toString(36).slice(2,8);
+    data._writeToken = ultimoTokenEscritura;
     data._updatedAt = serverTimestamp();
     await setDoc(DOC_REF, data);
     showSavedIndicator();
@@ -1502,15 +1505,16 @@ function suscribirCambiosRemotos() {
     if (firestoreLoading || !snap.exists()) return;
     const data = snap.data();
     if (!data || !data.tabs || !data.tabs.length) return;
-    // Solo recargar si el cambio vino de otro dispositivo (no de nosotros mismos)
-    const localStr = JSON.stringify(buildStateObject().tabs);
-    const remoteStr = JSON.stringify(data.tabs);
-    if (localStr !== remoteStr) {
-      firestoreLoading = true;
-      applyState(data);
-      firestoreLoading = false;
-      saveToLocal();
-    }
+    // Si el cambio tiene nuestro propio token de escritura, lo ignoramos (ya lo tenemos aplicado)
+    if (data._writeToken && data._writeToken === ultimoTokenEscritura) return;
+    // Si estamos escribiendo algo en este momento (input con foco), no interrumpir
+    const activo = document.activeElement;
+    const escribiendoAhora = activo && (activo.tagName === 'INPUT' || activo.tagName === 'SELECT' || activo.tagName === 'TEXTAREA');
+    if (escribiendoAhora) return;
+    firestoreLoading = true;
+    applyState(data);
+    firestoreLoading = false;
+    saveToLocal();
   }, (e) => {
     console.error('Error en suscripción Firestore:', e);
   });
