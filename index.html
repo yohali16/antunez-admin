@@ -286,6 +286,8 @@
     display: flex; align-items: center; gap: 4px;
   }
   .save-dot { width: 6px; height: 6px; border-radius: 50%; background: #7fff90; display: inline-block; }
+  .save-dot.error { background: #ff5f6d; }
+  .save-dot.saving { background: #ffd060; }
 
   /* ── CORTE DE VENTAS ─────────────────────────────────────────────────────── */
   .corte-wrap {
@@ -500,6 +502,33 @@
 
 
 </style>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import {
+    getFirestore, doc, setDoc, getDoc, onSnapshot, serverTimestamp
+  } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyBrnXGHkT1iE7ytJokcznNHbsoV2PXlmBA",
+    authDomain: "antunez-admin.firebaseapp.com",
+    projectId: "antunez-admin",
+    storageBucket: "antunez-admin.firebasestorage.app",
+    messagingSenderId: "314950798783",
+    appId: "1:314950798783:web:fd8a634e27725a5b51a50a"
+  };
+
+  const fbApp = initializeApp(firebaseConfig);
+  const db = getFirestore(fbApp);
+
+  // Documento único donde vive todo el negocio (una sola familia de usuarios)
+  const DOC_REF = doc(db, "antunez", "negocio");
+
+  // Exponemos en window para que el script principal (no-módulo) pueda usarlos
+  window.__firebase = { db, doc, setDoc, getDoc, onSnapshot, serverTimestamp, DOC_REF };
+  window.__firebaseReady = true;
+  window.dispatchEvent(new Event('firebase-ready'));
+</script>
 </head>
 <body>
 
@@ -1387,7 +1416,6 @@ function applyState(state) {
 function saveToLocal() {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(buildStateObject()));
-    showSavedIndicator();
   } catch(e) {}
 }
 
@@ -1402,20 +1430,89 @@ function loadFromLocal() {
 // Guardado con debounce: no guarda en cada tecla, sino 800ms después de dejar de teclear
 function saveState() {
   clearTimeout(saveTimeout);
-  saveTimeout = setTimeout(saveToLocal, 800);
+  showSavingIndicator();
+  saveTimeout = setTimeout(() => {
+    saveToLocal();        // respaldo inmediato en este navegador
+    saveToFirestore();     // guardado en la nube (todos los dispositivos)
+  }, 800);
 }
 
 function showSavedIndicator() {
   const el = document.getElementById('saveIndicator');
   if (!el) return;
   el.innerHTML = '<span class="save-dot"></span> Guardado';
-  el.style.opacity = '1';
 }
 
 function showSavingIndicator() {
   const el = document.getElementById('saveIndicator');
   if (!el) return;
-  el.innerHTML = '<span class="save-dot" style="background:#ffd060"></span> Guardando…';
+  el.innerHTML = '<span class="save-dot saving"></span> Guardando…';
+}
+
+function showErrorIndicator() {
+  const el = document.getElementById('saveIndicator');
+  if (!el) return;
+  el.innerHTML = '<span class="save-dot error"></span> Error al guardar';
+}
+
+// ── Firebase Firestore (almacenamiento en la nube) ────────────────────────────
+let firestoreLoading = false;   // evita guardar mientras estamos cargando datos remotos
+let firestoreReady = false;
+
+async function saveToFirestore() {
+  if (!window.__firebaseReady || firestoreLoading) return;
+  try {
+    const { db, doc, setDoc, serverTimestamp, DOC_REF } = window.__firebase;
+    const data = buildStateObject();
+    data._updatedAt = serverTimestamp();
+    await setDoc(DOC_REF, data);
+    showSavedIndicator();
+  } catch (e) {
+    console.error('Error guardando en Firestore:', e);
+    showErrorIndicator();
+  }
+}
+
+async function loadFromFirestore() {
+  if (!window.__firebaseReady) return false;
+  try {
+    const { getDoc, DOC_REF } = window.__firebase;
+    const snap = await getDoc(DOC_REF);
+    if (!snap.exists()) return false;
+    const data = snap.data();
+    if (!data || !data.tabs || !data.tabs.length) return false;
+    firestoreLoading = true;
+    const ok = applyState(data);
+    firestoreLoading = false;
+    if (ok) saveToLocal(); // sincronizar respaldo local
+    return ok;
+  } catch (e) {
+    console.error('Error cargando de Firestore:', e);
+    showErrorIndicator();
+    return false;
+  }
+}
+
+// Escuchar cambios en tiempo real (ej. si abres la app en otro dispositivo)
+function suscribirCambiosRemotos() {
+  if (!window.__firebaseReady) return;
+  const { onSnapshot, DOC_REF } = window.__firebase;
+  onSnapshot(DOC_REF, (snap) => {
+    if (firestoreLoading || !snap.exists()) return;
+    const data = snap.data();
+    if (!data || !data.tabs || !data.tabs.length) return;
+    // Solo recargar si el cambio vino de otro dispositivo (no de nosotros mismos)
+    const localStr = JSON.stringify(buildStateObject().tabs);
+    const remoteStr = JSON.stringify(data.tabs);
+    if (localStr !== remoteStr) {
+      firestoreLoading = true;
+      applyState(data);
+      firestoreLoading = false;
+      saveToLocal();
+    }
+  }, (e) => {
+    console.error('Error en suscripción Firestore:', e);
+  });
 }
 
 // ── Exportar a archivo .json (guarda en tu disco) ─────────────────────────────
@@ -1445,7 +1542,8 @@ function importarDatos(input) {
     try {
       const state = JSON.parse(e.target.result);
       if (applyState(state)) {
-        saveToLocal(); // también actualiza localStorage
+        saveToLocal();
+        saveToFirestore();
         alert('✅ Datos cargados correctamente.');
       } else {
         alert('❌ El archivo no tiene un formato válido de Antunez.');
@@ -1463,7 +1561,6 @@ const _origRefreshTotals = refreshTotals;
 refreshTotals = function(tabId) {
   _origRefreshTotals(tabId);
   refreshCorte(tabId);          // recalcular corte al cambiar costos
-  showSavingIndicator();
   saveState();
 };
 
@@ -1480,10 +1577,39 @@ confirmAddTab = function() { _origConfirmAddTab(); saveState(); };
 window.addEventListener('beforeunload', () => { clearTimeout(saveTimeout); saveToLocal(); });
 
 // ── Init ───────────────────────────────────────────────────────────────────────
-if (!loadFromLocal()) {
-  const today = new Date().toISOString().slice(0,10);
-  createTab(fmtDate(today), today);
+async function iniciarApp() {
+  // 1) Mientras esperamos Firebase, mostrar algo de inmediato con lo que haya en localStorage
+  const cargoLocal = loadFromLocal();
+  if (!cargoLocal) {
+    const today = new Date().toISOString().slice(0,10);
+    createTab(fmtDate(today), today);
+  }
+
+  // 2) Esperar a que Firebase esté listo (máx. 5s) y luego intentar cargar desde la nube
+  const esperarFirebase = new Promise(resolve => {
+    if (window.__firebaseReady) return resolve(true);
+    window.addEventListener('firebase-ready', () => resolve(true), { once: true });
+    setTimeout(() => resolve(false), 5000);
+  });
+  const fbListo = await esperarFirebase;
+
+  if (fbListo) {
+    showSavingIndicator();
+    const cargoRemoto = await loadFromFirestore();
+    if (!cargoRemoto && !cargoLocal) {
+      // No había nada en la nube ni localmente: subimos lo recién creado
+      await saveToFirestore();
+    } else {
+      showSavedIndicator();
+    }
+    suscribirCambiosRemotos();
+  } else {
+    showErrorIndicator();
+  }
 }
+
+iniciarApp();
+
 </script>
 </body>
 </html>
